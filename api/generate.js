@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ error: { message: "Method Not Allowed" } });
@@ -25,4 +25,4 @@ export default async function handler(req, res) {
   } catch (e) {
     return res.status(500).json({ error: { message: String(e?.message || e) } });
   }
-}
+};
