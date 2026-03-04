@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>트립닷컴 리뷰 작성기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 커스텀 스크롤바 & 애니메이션 설정 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen p-4 md:p-8">
+
+    <!-- 메인 컨테이너 (중앙 정렬 1단 구조) -->
+    <main class="max-w-2xl mx-auto">
+        
+        <!-- 헤더 영역 -->
+        <header class="text-center mb-8 fade-in">
+            <h1 class="text-3xl font-bold text-slate-900 mb-2 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.2-1.1.6L2.5 8l6.5 4-2.5 2.5-3 1-.5 1.5 2.5.5 1.5 2.5 1.5-.5 1-3 2.5-2.5 4 6.5 1.2-1.2c.4-.2.7-.6.6-1.1z"/></svg>
+                트립닷컴 리뷰 작성기
+            </h1>
+            <p class="text-slate-500 text-sm">깔끔하고 가독성 좋은 맞춤형 리뷰를 생성해 드립니다.</p>
+        </header>
+
+        <!-- 컨트롤 패널 카드 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden fade-in relative z-10">
+            
+            <!-- 탭 메뉴 -->
+            <div class="flex border-b border-slate-100">
+                <button id="tab-include" class="flex-1 py-4 text-sm font-semibold text-blue-600 border-b-2 border-blue-600 bg-blue-50/30 transition-colors" onclick="switchTab(true)">
+                    제목에 장소명 기입 ⭕
+                </button>
+                <button id="tab-exclude" class="flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:bg-slate-50 transition-colors" onclick="switchTab(false)">
+                    제목에 장소명 제외 ❌
+                </button>
+            </div>
+
+            <!-- 입력 폼 -->
+            <div class="p-6">
+                <div class="mb-4">
+                    <label for="placeInput" class="block text-sm font-medium text-slate-700 mb-2">장소 입력</label>
+                    <div class="relative">
+                        <input type="text" id="placeInput" 
+                            class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                            placeholder="예: 롯데월드, 광주 크림집 ㅁ, 에버랜드 ㅁ3"
+                            onkeypress="if(event.key === 'Enter') generateReview()">
+                    </div>
+                    <div class="mt-3 text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100 flex gap-2 items-start">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0 text-blue-500"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        <p class="leading-relaxed">
+                            <span class="font-medium text-slate-700">작성 팁 (명령어):</span><br>
+                            • <b>색다른 리뷰:</b> 장소명 뒤에 <code>ㅁ</code>을 붙이면 평소와 다른 독특한 느낌으로 써줍니다. (예: <code>광주 크림집 ㅁ</code>)<br>
+                            • <b>여러 개 뽑기:</b> <code>ㅁ2</code>, <code>ㅁ3</code>처럼 숫자를 붙이면 그 개수만큼 각기 다른 리뷰를 뽑아줍니다! (예: <code>에버랜드 ㅁ3</code>)
+                        </p>
+                    </div>
+                </div>
+
+                <button id="generateBtn" onclick="generateReview()" 
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl py-3.5 transition-all shadow-sm flex justify-center items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>
+                    <span>리뷰 생성하기</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 에러 메시지 영역 -->
+        <div id="errorMsg" class="hidden mt-4 p-4 bg-red-50 text-red-600 rounded-xl text-sm border border-red-100 text-center fade-in">
+        </div>
+
+        <!-- 결과 영역 -->
+        <div id="resultsArea" class="mt-6 space-y-4">
+            <!-- 결과 카드가 여기에 동적으로 추가됩니다 -->
+        </div>
+
+    </main>
+
+    <script>
+        // --- Gemini API 설정 ---
+        const apiKey = ""; // API Key는 실행 환경에서 주입됨
+        let isTabIncludePlace = true;
+
+        // --- 탭 전환 로직 ---
+        function switchTab(includePlace) {
+            isTabIncludePlace = includePlace;
+            const tabInc = document.getElementById('tab-include');
+            const tabExc = document.getElementById('tab-exclude');
+
+            if (includePlace) {
+                tabInc.className = "flex-1 py-4 text-sm font-semibold text-blue-600 border-b-2 border-blue-600 bg-blue-50/30 transition-colors";
+                tabExc.className = "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:bg-slate-50 transition-colors";
+            } else {
+                tabExc.className = "flex-1 py-4 text-sm font-semibold text-blue-600 border-b-2 border-blue-600 bg-blue-50/30 transition-colors";
+                tabInc.className = "flex-1 py-4 text-sm font-semibold text-slate-500 border-b-2 border-transparent hover:bg-slate-50 transition-colors";
+            }
+        }
+
+        // --- 입력 텍스트 파싱 로직 ---
+        function parseInput(input) {
+            let count = 1;
+            let placeName = input.trim();
+            let isDifferentStyle = false;
+
+            // 정규식: 장소명 후 공백, 그 뒤에 'ㅁ'과 숫자(선택)
+            const match = input.trim().match(/^(.+)\s+ㅁ(\d*)$/);
+            
+            if (match) {
+                isDifferentStyle = true; // ㅁ가 붙었으므로 색다른 스타일 요구
+                placeName = match[1].trim(); // 1번째 그룹이 장소명
+                count = match[2] ? parseInt(match[2], 10) : 1; // 2번째 그룹이 숫자
+            }
+
+            // 최대 생성 개수 제한 (안전장치)
+            if (count > 5) count = 5; 
+            if (count < 1) count = 1;
+
+            return { count, placeName, isDifferentStyle };
+        }
+
+        // --- 클립보드 복사 로직 ---
+        function copyToClipboard(button, index) {
+            const textToCopy = document.getElementById(`review-content-${index}`).innerText;
+            
+            // 임시 textarea를 사용한 복사 (iframe 등 환경에서 더 안정적)
+            const textarea = document.createElement('textarea');
+            textarea.value = textToCopy;
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                // 아이콘 변경 피드백
+                const originalHTML = button.innerHTML;
+                button.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="text-green-600">복사 완료!</span>`;
+                button.classList.replace('bg-slate-100', 'bg-green-50');
+                button.classList.replace('hover:bg-slate-200', 'hover:bg-green-100');
+                button.classList.replace('text-slate-600', 'text-green-700');
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.classList.replace('bg-green-50', 'bg-slate-100');
+                    button.classList.replace('hover:bg-green-100', 'hover:bg-slate-200');
+                    button.classList.replace('text-green-700', 'text-slate-600');
+                }, 2000);
+            } catch (err) {
+                alert('복사에 실패했습니다.');
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        // --- 재시도 로직이 포함된 API 호출 ---
+        async function fetchWithRetry(url, options, maxRetries = 5) {
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return await response.json();
+                } catch (e) {
+                    if (i === maxRetries - 1) throw e;
+                    await new Promise(resolve => setTimeout(resolve, delays[i]));
+                }
+            }
+        }
+
+        // --- 리뷰 생성 메인 함수 ---
+        async function generateReview() {
+            const inputField = document.getElementById('placeInput');
+            const rawInput = inputField.value;
+            const errorMsg = document.getElementById('errorMsg');
+            const resultsArea = document.getElementById('resultsArea');
+            const generateBtn = document.getElementById('generateBtn');
+
+            if (!rawInput.trim()) {
+                inputField.focus();
+                return;
+            }
+
+            // UI 상태 업데이트 (로딩)
+            errorMsg.classList.add('hidden');
+            resultsArea.innerHTML = '';
+            const originalBtnContent = generateBtn.innerHTML;
+            generateBtn.innerHTML = '<div class="loader mr-2"></div> 생성 중...';
+            generateBtn.disabled = true;
+            generateBtn.classList.add('opacity-80', 'cursor-not-allowed');
+
+            try {
+                const { count, placeName, isDifferentStyle } = parseInput(rawInput);
+
+                // 프롬프트 구성
+                const systemPrompt = `당신은 트립닷컴의 전문적이고 정보 전달력이 뛰어난 리뷰 작성자입니다.
+아래의 [절대 금지 규칙]과 [작성 양식 템플릿]을 완벽하게 준수하여 실용적이고 깔끔한 리뷰를 작성하세요.
+가장 중요한 점: 모든 문장의 끝맺음은 반드시 '~해요', '~어요' (해요체/요조체)를 사용해야 합니다.
+🔥[가장 중요한 시스템 명령]🔥: 현재 ${count}개의 리뷰를 한 번에 생성해야 합니다. AI가 여러 개를 생성할 때 뒤로 갈수록 팁이나 위치 양식을 빼먹거나 대충 쓰는 경향이 있습니다. 배열에 들어가는 **모든 ${count}개의 리뷰가 단 하나도 빠짐없이** [작성 양식 템플릿]의 제목부터 팁까지의 엔터 구조를 100% 완벽하게 유지하도록 절대 강제합니다. 생략은 절대 용납하지 않습니다.`;
+
+                const promptDetails = `
+[사용자 요청 정보]
+- 장소명: ${placeName}
+- 생성 개수: 무조건 ${count}개 (각각의 리뷰가 완벽하게 독립적인 양식 유지할 것)
+- 특별 요청: ${isDifferentStyle ? '기존과 아예 다른 독특한 시각이나 색다른 느낌의 리뷰 톤으로 작성할 것 (오글거리는 감성 절대 금지)' : '객관적이고 깔끔한 표준 톤으로 작성할 것'}
+
+[문체 및 톤앤매너 참고 예시 - 이 느낌을 완벽히 복제하세요]
+"광주 크림집 카페는 2층 규모로 운영되는 대형 카페이고, 내부 전체가 유럽풍 인테리어로 구성돼 있어요. 층고가 높고 공간이 넓게 빠져 있어서 좌석 간 간격이 비교적 여유 있는 편이고, 1층과 2층 분위기가 조금씩 달라서 자리 선택 폭도 넓어요."
+-> 위 예시처럼 '~해요', '~어요' 체를 일관되게 사용하여 작성하세요.
+
+[작성 양식 템플릿 - 반드시 아래의 엔터(줄바꿈) 구조를 그대로 복사하듯 똑같이 따를 것]
+${isTabIncludePlace ? `[이모지] 제목 (제목에 장소명 기입)
+
+본문 내용 (문단 구분 없이 300~500자, 자연스럽게 "${placeName}" 기재, 반드시 ~해요/~어요 체 사용)
+
+📍${placeName}
+
+[💫팁]
+· 첫 번째 꿀팁 (시간대, 입장료, 운영시간 등)
+· 두 번째 꿀팁` : `[이모지] 장소명이 전혀 들어가지 않은 제목
+
+본문 내용 (문단 구분 없이 300~500자, 자연스럽게 "${placeName}" 기재, 반드시 ~해요/~어요 체 사용)
+
+[💫팁]
+· 첫 번째 꿀팁 (시간대, 입장료, 운영시간 등)
+· 두 번째 꿀팁`}
+
+[규칙 - 위반 시 감점]
+1. 문체: '~습니다', '~합니다', '~다' 체 절대 금지. 무조건 '~해요', '~어요'로 끝낼 것.
+2. 제목: 서술형 제목 금지, 연속적으로 비슷한 느낌의 제목 금지. 
+${isTabIncludePlace ? `👉 [필수]: 제목에 반드시 "${placeName}" 장소명을 포함할 것.` : `👉 [절대 금지]: 제목에 "${placeName}" 이라는 단어나 지역명, 괄호 부연 설명 등을 단 한 글자도 적지 마세요. 오직 장소의 특징과 분위기만으로 제목을 만드세요.`}
+3. 내용: 오글거리는 과한 감성 멘트 금지, 한글(영어) 표기 금지, ***화엄사*** 식 특수기호 표기 금지, 반점(,) 남발 금지
+4. 위치 표기: ${isTabIncludePlace ? `본문과 팁 사이에 "📍${placeName}" 라인을 반드시 넣으세요.` : `본문과 팁 사이에 📍이모지가 들어간 위치 표기 라인을 절대 작성하지 마세요. (7번 항목 삭제 규칙)`}
+`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: promptDetails }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: { 
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "ARRAY",
+                            description: "요청된 개수만큼의 리뷰 문자열을 담은 배열",
+                            items: { type: "STRING" }
+                        }
+                    }
+                };
+
+                const result = await fetchWithRetry("/api/generate", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (result.error) {
+                    throw new Error(result.error.message || 'API 호출 중 오류가 발생했습니다.');
+                }
+
+                // 결과 파싱
+                const textResponse = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                let reviews = [];
+                if (textResponse) {
+                    reviews = JSON.parse(textResponse);
+                } else {
+                    throw new Error('응답 결과를 파싱할 수 없습니다.');
+                }
+
+                // 결과 렌더링
+                reviews.forEach((reviewText, index) => {
+                    // 결과에서 혹시 모를 앞뒤 이스케이프나 따옴표 정리
+                    let cleanText = reviewText.replace(/\\n/g, '\n').trim();
+                    
+                    const card = document.createElement('div');
+                    card.className = "bg-white rounded-2xl p-6 shadow-sm border border-slate-200 fade-in relative group";
+                    
+                    // 복사 버튼
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = "absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-medium transition-colors opacity-0 group-hover:opacity-100 md:opacity-100";
+                    copyBtn.onclick = () => copyToClipboard(copyBtn, index);
+                    copyBtn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                        <span>복사</span>
+                    `;
+
+                    // 본문 (pre-wrap 적용하여 공백/줄바꿈 유지)
+                    const contentDiv = document.createElement('div');
+                    contentDiv.id = `review-content-${index}`;
+                    contentDiv.className = "whitespace-pre-wrap text-[15px] leading-relaxed text-slate-700 pr-16";
+                    contentDiv.innerText = cleanText;
+
+                    // 번호 배지 (여러 개인 경우)
+                    if (count > 1) {
+                        const badge = document.createElement('span');
+                        badge.className = "inline-flex items-center justify-center w-6 h-6 bg-blue-100 text-blue-700 rounded-full text-xs font-bold mb-3";
+                        badge.innerText = index + 1;
+                        card.appendChild(badge);
+                    }
+
+                    card.appendChild(copyBtn);
+                    card.appendChild(contentDiv);
+                    resultsArea.appendChild(card);
+                });
+
+            } catch (error) {
+                console.error('Error:', error);
+                errorMsg.innerText = `오류가 발생했습니다: ${error.message}`;
+                errorMsg.classList.remove('hidden');
+            } finally {
+                // UI 상태 복구
+                generateBtn.innerHTML = originalBtnContent;
+                generateBtn.disabled = false;
+                generateBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+            }
+        }
+    </script>
+</body>
+</html>
